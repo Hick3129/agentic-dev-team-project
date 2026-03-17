@@ -1,2 +1,20 @@
-# 通知：此 repo 為多代理系統專案，請勿直接修改 main 分支。
-# 所有變更請透過 feature branches 和 PR 進行。
+# 自動分配審核者（單一帳號版本）
+# 所有文件修改都 assign 給 @Hick3129
+
+# 需求文件（PM）
+/docs/requirements/    @Hick3129
+
+# 架構設計（Architect）
+/docs/architecture/   @Hick3129
+
+# 實作代码（Engineer）
+/docs/implementation/ @Hick3129
+
+# 審查文件（Reviewer）
+/docs/review/         @Hick3129
+
+# 測試文件（Tester）
+/docs/testing/        @Hick3129
+
+# 其他：根目錄的變更 assign 給 @Hick3129
+/*                     @Hick3129
