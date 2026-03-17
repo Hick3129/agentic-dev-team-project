@@ -1,0 +1,94 @@
+name: Validate Handoff
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine role from branch
+        id: role
+        run: |
+          BRANCH="${GITHUB_HEAD_REF}"
+          if [[ $BRANCH == pm/* ]]; then
+            echo "role=product-manager" >> $GITHUB_OUTPUT
+          elif [[ $BRANCH == arch/* ]]; then
+            echo "role=architect" >> $GITHUB_OUTPUT
+          elif [[ $BRANCH == eng/* ]]; then
+            echo "role=engineer" >> $GITHUB_OUTPUT
+          elif [[ $BRANCH == review/* ]]; then
+            echo "role=reviewer" >> $GITHUB_OUTPUT
+          elif [[ $BRANCH == test/* ]]; then
+            echo "role=tester" >> $GITHUB_OUTPUT
+          else
+            echo "role=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check handoff.md exists and has required sections
+        if: steps.role.outputs.role != 'unknown'
+        run: |
+          ROLE="${{ steps.role.outputs.role }}"
+          HANDOFF_DIR="docs/${ROLE}"
+          if [ ! -f "$HANDOFF_DIR/handoff.md" ]; then
+            echo "❌ Missing handoff.md in $HANDOFF_DIR"
+            exit 1
+          fi
+
+          REQUIRED_SECTIONS=("📦 交付內容" "✅ 已完成工作" "🔑 關鍵決策" "🧩 開放問題" "⚠️ 注意事項與風險" "📚 參考資料連結")
+          for SECTION in "${REQUIRED_SECTIONS[@]}"; do
+            if ! grep -q "$SECTION" "$HANDOFF_DIR/handoff.md"; then
+              echo "❌ Missing section: '$SECTION' in handoff.md"
+              exit 1
+            fi
+          done
+
+          echo "✅ handoff.md validation passed for role: $ROLE"
+
+      - name: Check required deliverables
+        if: steps.role.outputs.role != 'unknown'
+        run: |
+          ROLE="${{ steps.role.outputs.role }}"
+          case $ROLE in
+            product-manager)
+              FILES=("product-requirements.md" "user-stories.md" "acceptance-criteria.md")
+              ;;
+            architect)
+              FILES=("technology-stack.md" "architecture.md" "database-schema.md" "api-specs.md" "directory-structure.md" "technical-risks.md")
+              ;;
+            engineer)
+              if [ ! -d "docs/implementation/src" ] || [ -z "$(find docs/implementation/src -type f \( -name '*.js' -o -name '*.py' -o -name '*.go' -o -name '*.java' -o -name '*.ts' \) 2>/dev/null | head -1)" ]; then
+                echo "❌ No source code files found in docs/implementation/src/"
+                exit 1
+              fi
+              FILES=("README.md" "TESTING.md" "CHANGELOG.md")
+              ;;
+            reviewer)
+              FILES=("review-report.md" "approval-status.txt")
+              ;;
+            tester)
+              FILES=("test-cases.md" "test-execution-report.md" "sign-off.md")
+              if [ ! -d "docs/testing/bugs" ]; then
+                echo "❌ Missing docs/testing/bugs/ directory"
+                exit 1
+              fi
+              ;;
+            *)
+              echo "❌ Unknown role: $ROLE"
+              exit 1
+              ;;
+          esac
+
+          for FILE in "${FILES[@]}"; do
+            if [ ! -e "docs/$ROLE/$FILE" ]; then
+              echo "❌ Missing required file: docs/$ROLE/$FILE"
+              exit 1
+            fi
+          done
+
+          echo "✅ All required deliverable files present for $ROLE"

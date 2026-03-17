@@ -1,0 +1,47 @@
+name: Update STATUS.md
+
+on:
+  pull_request:
+    types: [opened, closed, reopened]
+  push:
+    branches: [ main ]
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate STATUS.md
+        run: |
+          cat > STATUS.md << 'EOF'
+          # Project Status - Agentic Development Team
+
+          Last Updated: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M')
+          Current Time in Taipei: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M (UTC%:z)')
+
+          | Role | Status | Deliverable | Last Updated | Notes |
+          |------|--------|-------------|--------------|-------|
+          EOF
+
+          # For each role, determine status
+          # 1. Check if there is an open PR for that role
+          # 2. Check if deliverable is merged on main
+          # Simulate logic (simplified)
+          echo "| Product Manager | ⏳ Waiting | - | - | Waiting for start |" >> STATUS.md
+          echo "| Architect | ⏳ Waiting | - | - | Waiting for PM deliverables |" >> STATUS.md
+          echo "| Engineer | ⏳ Waiting | - | - | Waiting for Architect deliverables |" >> STATUS.md
+          echo "| Reviewer | ⏳ Waiting | - | - | Waiting for Engineer deliverables |" >> STATUS.md
+          echo "| Tester | ⏳ Waiting | - | - | Waiting for Reviewer approval |" >> STATUS.md
+
+      - name: Commit STATUS.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add STATUS.md
+          git diff --staged --quiet || git commit -m "chore: update project status"
+          git push
