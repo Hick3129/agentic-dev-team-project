@@ -1,10 +1,11 @@
 name: Update STATUS.md
 
 on:
-  pull_request:
-    types: [opened, closed, reopened]
   push:
     branches: [ main ]
+  schedule:
+    - cron: '0 12 * * *' # daily at 12:00 UTC
+  workflow_dispatch:
 
 jobs:
   update-status:
@@ -16,32 +17,88 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate STATUS.md
+      - name: Install jq (if needed)
         run: |
-          cat > STATUS.md << 'EOF'
-          # Project Status - Agentic Development Team
+          if ! command -v jq &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y jq
+          fi
 
-          Last Updated: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M')
-          Current Time in Taipei: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M (UTC%:z)')
+      - name: Generate STATUS.md from PR data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          
+          REPO="${{ github.repository }}"
+          echo "Fetching PRs for $REPO..."
+          
+          # Fetch all PRs (state=all)
+          prs_json=$(gh api repos/$REPO/pulls -H "Accept: application/vnd.github+json" -q '.[] | {number, state, head_ref, base_ref, merged_at, title}')
+          
+          declare -A role_map=(
+            ["pm"]="Product Manager"
+            ["arch"]="Architect"
+            ["eng"]="Engineer"
+            ["review"]="Reviewer"
+            ["test"]="Tester"
+          )
+          
+          {
+            echo "# Project Status - Agentic Development Team"
+            echo ""
+            echo "Last Updated: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M')"
+            echo "Current Time in Taipei: $(TZ='Asia/Taipei' date '+%Y-%m-%d %H:%M (UTC%:z)')"
+            echo ""
+            echo "| Role | Status | Deliverable | Last Updated | Notes |"
+            echo "|------|--------|-------------|--------------|-------|"
+          } > STATUS.md
+          
+          for prefix in "${!role_map[@]}"; do
+            role_name="${role_map[$prefix]}"
+            status="⏳ Waiting"
+            deliverable="—"
+            last_updated="—"
+            notes="Not started"
+            
+            # Find PRs with head_ref starting with prefix/
+            matching_pr=$(echo "$prs_json" | jq -r --arg prefix "$prefix/" 'select(.head_ref | startswith($prefix))')
+            
+            if [ -n "$matching_pr" ]; then
+              # In our flow, each role has at most one PR at a time.
+              # Take the first one.
+              pr_number=$(echo "$matching_pr" | jq -r '.[0].number')
+              pr_state=$(echo "$matching_pr" | jq -r '.[0].state')
+              pr_merged=$(echo "$matching_pr" | jq -r '.[0].merged_at // empty')
+              
+              if [ "$pr_state" = "open" ]; then
+                status="🔄 In Progress"
+                deliverable="PR #$pr_number"
+                notes="Work in progress"
+              elif [ -n "$pr_merged" ]; then
+                status="✅ Completed"
+                deliverable="Merged"
+                # merged_at is ISO 8601 UTC
+                last_updated=$(date -d "$pr_merged" +"%Y-%m-%d %H:%M" 2>/dev/null || echo "$pr_merged")
+                notes="Delivered and merged"
+              else
+                status="❌ Blocked"
+                deliverable="Closed"
+                notes="PR closed without merge"
+              fi
+            fi
+            
+            echo "| $role_name | $status | $deliverable | $last_updated | $notes |" >> STATUS.md
+          done
 
-          | Role | Status | Deliverable | Last Updated | Notes |
-          |------|--------|-------------|--------------|-------|
-          EOF
-
-          # For each role, determine status
-          # 1. Check if there is an open PR for that role
-          # 2. Check if deliverable is merged on main
-          # Simulate logic (simplified)
-          echo "| Product Manager | ⏳ Waiting | - | - | Waiting for start |" >> STATUS.md
-          echo "| Architect | ⏳ Waiting | - | - | Waiting for PM deliverables |" >> STATUS.md
-          echo "| Engineer | ⏳ Waiting | - | - | Waiting for Architect deliverables |" >> STATUS.md
-          echo "| Reviewer | ⏳ Waiting | - | - | Waiting for Engineer deliverables |" >> STATUS.md
-          echo "| Tester | ⏳ Waiting | - | - | Waiting for Reviewer approval |" >> STATUS.md
-
-      - name: Commit STATUS.md
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add STATUS.md
-          git diff --staged --quiet || git commit -m "chore: update project status"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to STATUS.md"
+          else
+            git commit -m "chore: update project status"
+            git push
+          fi
