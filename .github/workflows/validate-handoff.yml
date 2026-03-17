@@ -70,8 +70,13 @@ jobs:
               FILES=("technology-stack.md" "architecture.md" "database-schema.md" "api-specs.md" "directory-structure.md" "technical-risks.md")
               ;;
             engineer)
-              if [ ! -d "$DIR/src" ] || [ -z "$(find "$DIR/src" -type f \( -name '*.js' -o -name '*.py' -o -name '*.go' -o -name '*.java' -o -name '*.ts' \) 2>/dev/null | head -1)" ]; then
-                echo "❌ No source code files found in $DIR/src/"
+              # 檢查源碼目錄是否存在且包含程式文件
+              if [ ! -d "frontend/src" ] || [ -z "$(find frontend/src -type f \( -name '*.js' -o -name '*.ts' -o -name '*.jsx' -o -name '*.tsx' \) 2>/dev/null | head -1)" ]; then
+                echo "❌ No source code files found in frontend/src/"
+                exit 1
+              fi
+              if [ ! -d "backend/src" ] || [ -z "$(find backend/src -type f \( -name '*.js' -o -name '*.ts' \) 2>/dev/null | head -1)" ]; then
+                echo "❌ No source code files found in backend/src/"
                 exit 1
               fi
               FILES=("README.md" "TESTING.md" "CHANGELOG.md")
