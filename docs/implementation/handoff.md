@@ -42,7 +42,7 @@
 - 環境變數：backend 需要 `DATABASE_URL`，frontend 需要 `VITE_API_BASE_URL`
 - 前端依賴 axios，後端依賴 prisma，第一次 `npm install` 會需要联网
 
-## 📚 參考資料
+## 📚 參考資料連結
 
 - Architecture: `docs/architecture/*.md`
 - API Spec: `docs/architecture/api-specs.md`
