@@ -8,7 +8,7 @@ This guide walks through setting up the multi-agent collaboration system using G
 
 1. **Create a new repository** on GitHub:
    - Name: `agentic-dev-team-project`
-   - Visibility: Private (recommended)
+   - Visibility: **Public** (if using GitHub Free, branch protection requires public repo)
    - Initialize: √ Add README, √ Add .gitignore (Node), √ Choose license (MIT)
 
 2. **Clone locally**:
@@ -19,13 +19,16 @@ This guide walks through setting up the multi-agent collaboration system using G
 
 3. **Create directory structure**:
    ```bash
-   mkdir -p .github/workflows docs/{requirements,architecture,implementation,review,testing} scripts
+   mkdir -p .github/workflows docs/{requirements,architecture,implementation,review,testing} scripts sub-agent-prompts
    ```
 
-4. **Copy files from this repository**:
-   - Copy all files from `/.github/`, `docs/`, `scripts/` to appropriate locations
-   - Copy `GITHUB_PLAN.md` to project root
-   - Copy existing `STATUS.md` and `README.md` (already in place)
+4. **Copy files** from design repo (`projects/agentic-dev-team/`) or templates:
+   - `.github/CODEOWNERS`
+   - `.github/workflows/validate-handoff.yml`
+   - `.github/workflows/update-status.yml`
+   - `.github/PULL_REQUEST_TEMPLATE.md`
+   - Placeholder handoff files into each `docs/[role]/`
+   - `STATUS.md` (initial)
 
 5. **Commit and push initial structure**:
    ```bash
@@ -51,18 +54,18 @@ This guide walks through setting up the multi-agent collaboration system using G
 
 ### CODEOWNERS
 
-The `.github/CODEOWNERS` file is already in place. Ensure the usernames match actual GitHub accounts:
-- Replace `@Product-Manager` with real username or team name
-- Do the same for other roles
+The `.github/CODEOWNERS` file should assign reviewers based on modified paths:
 
-### Secrets (Optional Telegram Notifications)
+```
+/docs/requirements/    @your-username
+/docs/architecture/   @your-username
+/docs/implementation/ @your-username
+/docs/review/         @your-username
+/docs/testing/        @your-username
+/*                    @your-username
+```
 
-1. Create a Telegram bot via @BotFather, get token
-2. Get your chat ID (or group ID)
-3. Go to **Settings → Secrets and variables → Actions → New repository secret**
-4. Add:
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
+Replace `@your-username` with actual GitHub usernames (or team names).
 
 ---
 
@@ -71,11 +74,11 @@ The `.github/CODEOWNERS` file is already in place. Ensure the usernames match ac
 1. Wait a few seconds after push
 2. Go to **Actions** tab in GitHub
 3. You should see workflows:
-   - `Validate Handoff` (will be idle until a PR is opened)
-   - `Update Status` (triggered on PR events)
-   - `Notify Telegram` (if configured)
+   - `Validate Handoff` (idle until PR opened)
+   - `Update Status` (triggered on push to main or PR events)
+   - (Optional) `Notify Telegram`
 
-4. Test by creating a **dummy PR**:
+4. **Test by creating a dummy PR**:
    ```bash
    git checkout -b pm/test
    touch docs/requirements/test.txt
@@ -84,7 +87,7 @@ The `.github/CODEOWNERS` file is already in place. Ensure the usernames match ac
    git push -u origin pm/test
    gh pr create --base main --head pm/test --title "Test" --body "Testing handoff validation"
    ```
-   - The `Validate Handoff` workflow should run and **fail** because handoff.md is missing/incomplete
+   - The `Validate Handoff` workflow should run and **fail** because `handoff.md` is missing/incomplete
    - This confirms the workflow is active
 
 ---
@@ -95,28 +98,25 @@ The `.github/CODEOWNERS` file is already in place. Ensure the usernames match ac
 # Check if gh is installed
 which gh || echo "gh not found"
 
-# If not installed, install it:
-# macOS (brew):
-brew install gh
-# Linux (apt):
-sudo apt update && sudo apt install gh
-# Or download from https://cli.github.com/
+# Install if missing (choose appropriate method):
+# - Linux (deb/rpm): https://github.com/cli/cli/releases
+# - macOS (brew): brew install gh
 
-# Authenticate with GitHub using a PAT with repo and workflow scopes:
+# Authenticate using a PAT with scopes: repo, workflow, read:org
 gh auth login --with-token < ~/.secrets/github-token
 
-# Verify
+# Verify connectivity
 gh repo view your-org/agentic-dev-team-project
 ```
 
 **Persist token**:
 
-Add to `~/.bashrc` or `~/.profile`:
+Add to shell profile (`~/.bashrc`, `~/.zshrc`):
 ```bash
 export GH_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
-Or use `gh auth login` which stores token in `~/.config/gh/hosts.yml`.
+Or rely on `gh auth login` which stores token in `~/.config/gh/hosts.yml`.
 
 ---
 
@@ -132,13 +132,11 @@ git pull origin main
 # Create PM branch
 git checkout -b pm/initial-requirements
 
-# Create deliverables (use create-handoff.sh script for template)
-./scripts/create-handoff.sh product-manager
-
-# Fill in the actual content for:
-# - docs/requirements/product-requirements.md
-# - docs/requirements/user-stories.md
-# - docs/requirements/acceptance-criteria.md
+# Create deliverables under docs/requirements/:
+# - product-requirements.md
+# - user-stories.md
+# - acceptance-criteria.md
+# - handoff.md (use template format)
 
 git add docs/requirements/
 git commit -m "feat(requirements): initial product requirements"
@@ -150,104 +148,226 @@ gh pr create \
   --head pm/initial-requirements \
   --title "feat(requirements): initial product requirements" \
   --body-file docs/requirements/handoff.md \
-  --reviewer "@Architect-GitHub-Username" \
   --label "type:feature"
 ```
 
-**Step B: Architect review and merge**
+**Step B: Validate Handoff**
 
-- As Architect (or via your GitHub account), review the PR
-- Approve, then merge (use Squash and merge)
-- Delete branch
+- Wait for GitHub Actions to run; ensure it passes.
+- If it fails, check logs and fix missing sections/files.
 
-**Step C: Check STATUS.md updates**
+**Step C: Approve and merge PR**
 
-- After merge, the `Update Status` workflow should run and update `STATUS.md`
-- Verify that `STATUS.md` shows Product Manager status as "✅ Completed"
-- Architect status changes to "🔄 In Progress" if they have an open PR; else "⏳ Waiting"
+- As the same account (single‑account testing), temporarily relax branch protection to allow self‑approval:
+  ```bash
+  gh api -X PUT -H "Accept: application/vnd.github.luke-cage-preview+json" \
+    repos/Hick3129/agentic-dev-team-project/branches/main/protection \
+    --input <(cat <<'JSON'
+    {
+      "required_pull_request_reviews": { "required_approving_review_count": 0 },
+      "required_status_checks": { "strict": true, "contexts": ["Validate Handoff"] },
+      "enforce_admins": false,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "required_linear_history": true,
+      "restrictions": null
+    }
+    JSON
+    )
+  ```
+- Approve PR: `gh pr review 1 --approve`
+- Merge PR: `gh pr merge 1 --merge --admin`
+- Restore branch protection (set `required_approving_review_count` back to `1`)
 
----
+**Step D: Repeat for Architect, Engineer, Tester**
 
-## Phase 6: Prepare Sub-agent Task Templates
-
-For each role, create a prompt template that can be passed to `sessions_spawn`. These should be stored in the agent's memory or in `docs/` for reference.
-
-Example template for Product Manager agent:
-
-```
-Task: Product Manager – Generate initial requirements for the project.
-
-Instructions:
-1. Pull latest main from GitHub.
-2. Create branch: pm/initial-requirements
-3. Create the following files under docs/requirements/:
-   - product-requirements.md
-   - user-stories.md
-   - acceptance-criteria.md
-   - handoff.md (use the template and fill in all sections)
-4. Commit and push.
-5. Create a PR to main with:
-   - Title: "feat(requirements): initial product requirements"
-   - Body: content of handoff.md
-   - Assign reviewer: @Architect (replace with actual GitHub username)
-6. Return the PR URL.
-```
-
-Store similar templates for Architect, Engineer, Reviewer, Tester in `docs/` or within the agent's system prompt.
+Follow the same pattern:
+- Architect → `docs/architecture/*`
+- Engineer → `docs/implementation/*` + `frontend/` + `backend/`
+- Tester → `docs/testing/*` (including `bugs/` directory)
 
 ---
 
-## Phase 7: Run the Full Agent Workflow
+## Phase 6: Actual Repository Structure (Lessons Learned)
 
-From the main OpenClaw session:
+### What We Actually Used
+
+```
+agentic-dev-team-project/
+├── .github/
+│   ├── CODEOWNERS
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/
+│       ├── validate-handoff.yml
+│       └── update-status.yml
+├── docs/
+│   ├── requirements/       (PM)
+│   ├── architecture/      (Architect)
+│   ├── implementation/    (Engineer) - **documentation only**
+│   ├── review/            (Reviewer)
+│   ├── testing/           (Tester)
+│   └── qa.md
+├── frontend/               (Engineer source code)
+├── backend/                (Engineer source code)
+├── sub-agent-prompts/     (Spawn templates for each role)
+├── scripts/               (optional helper scripts)
+├── IMPLEMENTATION_GUIDE.md
+├── GITHUB_PLAN.md
+├── PROJECT.md
+├── README.md
+├── STATUS.md
+└── HOW_TO_RUN.md
+```
+
+### Key Points
+
+- **Source code** lives in `frontend/` and `backend/`, **not** in `docs/implementation/src`.
+- `validate-handoff.yml` checks:
+  - `docs/[role]/handoff.md` exists and has required sections
+  - For Engineer: checks `frontend/src/` and `backend/src/` contain source files, and `docs/implementation/` has `README.md`, `TESTING.md`, `CHANGELOG.md`.
+- Each role creates a **feature branch** with prefix (`pm/`, `arch/`, `eng/`, `test/`), pushes, and opens PR to `main`.
+
+---
+
+## Phase 7: Sub‑agent Task Templates
+
+Create spawn prompts for each role. These are stored in `sub-agent-prompts/`:
+
+- `product-manager.md`
+- `architect.md`
+- `engineer.md`
+- `reviewer.md`
+- `tester.md`
+
+### Example usage (OpenClaw)
 
 ```bash
-# Spawn Product Manager agent
 sessions_spawn(
-  task: "<PM template>",
-  label: "PM-1"
+  task: "$(cat sub-agent-prompts/product-manager.md | sed "s/{{project_name}}/Todo App/g")",
+  label: "PM-1",
+  mode: "session"
 )
-
-# Wait for PR to be created and merged (or watch STATUS.md)
-# Then spawn Architect agent, etc.
 ```
 
-You can monitor progress:
-- Check GitHub PRs
-- Check `STATUS.md`
-- Check Telegram notifications (if enabled)
+Each template instructs the agent to:
+- Checkout latest `main`
+- Create appropriate branch
+- Write deliverables to `docs/[role]/`
+- Commit, push, and create PR
+- Ensure `Validate Handoff` passes
 
 ---
 
-## Troubleshooting
+## Phase 8: Update Status Automation
 
-| Issue | Likely Cause | Fix |
-|-------|--------------|-----|
-| `Validate Handoff` fails with "unknown role" | Branch name doesn't match `pm/*`, `arch/*`, etc. | Rename branch accordingly |
-| `gh` command not found in sub-agent | `gh` not installed or not in PATH | Install `gh` on host; ensure sub-agent inherits PATH |
-| PR template not applied | Template file missing or misnamed | Place `PULL_REQUEST_TEMPLATE.md` in `.github/` |
-| GitHub Actions not triggering | Branch protection missing required checks? | Check Actions tab for errors; verify `on:` paths |
-| STATUS.md not updating | Workflow lacks write permission | Ensure `permissions: contents: write` in workflow |
-| Telegram notifications not sent | Secrets missing or incorrect | Verify `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` |
+The `update-status.yml` workflow scans open and merged PRs to generate `STATUS.md` automatically.
 
----
+**Mapping**:
 
-## Checklist Before Starting
+| Branch prefix | Role |
+|---------------|------|
+| `pm/` | Product Manager |
+| `arch/` | Architect |
+| `eng/` | Engineer |
+| `review/` | Reviewer |
+| `test/` | Tester |
 
-- [ ] GitHub repo created and cloned
-- [ ] Directory structure in place
-- [ ] All files from this plan copied
-- [ ] Branch protection rule set on `main`
-- [ ] CODEOWNERS usernames updated
-- [ ] GitHub Actions workflows present in `.github/workflows/`
-- [ ] (Optional) Telegram secrets configured
-- [ ] `gh` CLI installed and authenticated on OpenClaw host
-- [ ] Manual dry run performed (PM → Architect PR)
-- [ ] Sub-agent task templates prepared
-- [ ] STATUS.md initialized
+It runs:
+- On push to `main`
+- On a daily schedule (12:00 UTC)
+- Manually via `workflow_dispatch`
+
+Result: `STATUS.md` table with ✅ Completed, 🔄 In Progress, ⏳ Waiting, ❌ Blocked.
 
 ---
 
-**All planning documents are saved in the project repository for future reference.**
+## Phase 9: Known Issues & Workarounds
 
-Ready to implement? Start with Phase 1.
+### TypeScript Toolchain in Backend
+
+During testing, we encountered difficulties running the TypeScript backend directly on OpenClaw host:
+
+- `typescript` package not found despite being in `devDependencies`
+- `ts-node` errors regarding module resolution and type declarations
+- Import paths with `.ts` extensions causing `TS5097` when `allowImportingTsExtensions` is not enabled
+
+**Workarounds**:
+
+1. Use `ts-node --transpile-only` to bypass type checking
+2. Or compile to JavaScript first: `npx tsc` then `node dist/index.js`
+3. Alternatively, switch to plain JavaScript (remove TypeScript) for fastest iteration
+4. **Recommended**: Use Docker to avoid host environment issues entirely
+
+### Docker Deployment
+
+See `HOW_TO_RUN.md` and accompanying `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`.
+
+Benefits:
+- Consistent environment
+- No local TypeScript install hassles
+- Easy to share and deploy
+
+---
+
+## Phase 10: Final Checklist
+
+- [x] GitHub repository created (public recommended)
+- [x] Branch protection rules configured
+- [x] CODEOWNERS updated with actual usernames
+- [x] Workflows (validate-handoff, update-status) in place
+- [x] Validate Handoff workflow tested and working for all roles
+- [x] Manual full flow completed (PM → Architect → Engineer → Tester) with all PRs merged
+- [x] Sub‑agent prompt templates prepared
+- [x] STATUS.md auto‑updating reliably
+- [x] Docker deployment files ready
+- [x] HOW_TO_RUN.md with troubleshooting
+- [ ] (Optional) Telegram notifications configured
+- [ ] (Future) Actual execution of test cases and update of `test-execution-report.md`
+
+---
+
+## Appendix: Quick Reference Commands
+
+**Git & PR**
+```bash
+git checkout -b pm/initial-requirements
+git add .
+git commit -m "feat(requirements): ..."
+git push -u origin pm/initial-requirements
+gh pr create --base main --head pm/initial-requirements --title "..." --body-file docs/requirements/handoff.md
+```
+
+**Temporarily disable branch protection review requirement**
+```bash
+gh api -X PUT -H "Accept: application/vnd.github.luke-cage-preview+json" \
+  repos/Hick3129/agentic-dev-team-project/branches/main/protection \
+  --input <(echo '{"required_pull_request_reviews":{"required_approving_review_count":0}, ...}')
+```
+
+**Re‑enable**
+```bash
+gh api -X PUT -H "Accept: application/vnd.github.luke-cage-preview+json" \
+  repos/Hick3129/agentic-dev-team-project/branches/main/protection \
+  --input <(cat <<'JSON'
+{
+  "required_pull_request_reviews": { "required_approving_review_count": 1 },
+  "required_status_checks": { "strict": true, "contexts": ["Validate Handoff"] },
+  "enforce_admins": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_linear_history": true,
+  "restrictions": null
+}
+JSON
+)
+```
+
+**Check workflow runs**
+```bash
+gh run list --repo Hick3129/agentic-dev-team-project
+gh run view <run-id> --log
+```
+
+---
+
+**Last updated**: 2026-03-17 by Assistant (based on actual implementation)
