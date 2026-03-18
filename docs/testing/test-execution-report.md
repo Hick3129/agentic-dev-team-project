@@ -1,10 +1,10 @@
 # Test Execution Report
 
 **Tester**: Hick3129 (Agent)  
-**Date**: 2026-03-17  
-**System Under Test**: Todo App (frontend + backend)  
-**Base Commit**: ae89694 (main)  
-**Environment**: OpenClaw host (attempted)
+**Date**: 2026-03-18  
+**System Under Test**: Todo App (backend API)  
+**Base Commit**: 9550a96 (main)  
+**Environment**: OpenClaw host (backend running on port 3000)
 
 ---
 
@@ -13,84 +13,72 @@
 | Category | Total | Passed | Failed | Skipped |
 |----------|-------|--------|--------|---------|
 | Functional (UI) | 8 | 0 | 0 | 8 |
-| API Integration | 5 | 0 | 0 | 5 |
+| API Integration | 6 | 6 | 0 | 0 |
 | Responsive | 1 | 0 | 0 | 1 |
-| **Total** | **14** | **0** | **0** | **14** |
+| **Total** | **15** | **6** | **0** | **8** |
 
-**Overall Status**: ⏳ **Not executed** (environment setup blockers)
+**Overall Status**: ⏳ **Partial execution** (API passed, UI pending)
 
 ---
 
 ## Execution Details
 
-### Functional Tests
+### Functional Tests (Pending - Frontend not tested)
 
 | TC ID | Description | Status | Notes |
 |-------|-------------|--------|-------|
-| TC-01 | 新增待辦 | ⏳ Pending | Environment not ready |
-| TC-02 | 空標題阻擋 | ⏳ Pending | Environment not ready |
-| TC-03 | 編輯待辦 | ⏳ Pending | Environment not ready |
-| TC-04 | 刪除待辦 | ⏳ Pending | Environment not ready |
-| TC-05 | 切換完成狀態 | ⏳ Pending | Environment not ready |
-| TC-06 | 篩選功能 | ⏳ Pending | Environment not ready |
-| TC-07 | LocalStorage 持久化 | ⏳ Pending | Environment not ready |
-| TC-08 | 響應式設計 | ⏳ Pending | Environment not ready |
+| TC-01 | 新增待辦 | ⏳ Pending | Frontend not started |
+| TC-02 | 空標題阻擋 | ⏳ Pending | Frontend not started |
+| TC-03 | 編輯待辦 | ⏳ Pending | Frontend not started |
+| TC-04 | 刪除待辦 | ⏳ Pending | Frontend not started |
+| TC-05 | 切換完成狀態 | ⏳ Pending | Frontend not started |
+| TC-06 | 篩選功能 | ⏳ Pending | Frontend not started |
+| TC-07 | LocalStorage 持久化 | ⏳ Pending | Frontend not started |
+| TC-08 | 響應式設計 | ⏳ Pending | Frontend not started |
 
-### API Tests
+### API Tests (Executed - All Passed)
 
 | TC ID | Endpoint | Expected | Status | Notes |
 |-------|----------|----------|--------|-------|
-| API-01 | GET /api/todos | 200 + array | ⏳ Pending | Backend failed to start |
-| API-02 | POST /api/todos | 201 + object | ⏳ Pending | Backend failed to start |
-| API-03 | PATCH /api/todos/:id | 200 + object | ⏳ Pending | Backend failed to start |
-| API-04 | DELETE /api/todos/:id | 204 or 200 | ⏳ Pending | Backend failed to start |
-| API-05 | Validation error | 400 | ⏳ Pending | Backend failed to start |
+| API-01 | GET /api/todos | 200 + [] | ✅ Pass | Returned empty array |
+| API-02 | POST /api/todos | 201 + object | ✅ Pass | Created todo with id, title, description |
+| API-03 | GET /api/todos/:id | 200 + object | ✅ Pass | Retrieved created todo |
+| API-04 | PATCH /api/todos/:id | 200 + object | ✅ Pass | Updated `completed` to true |
+| API-05 | DELETE /api/todos/:id | 200/204 | ✅ Pass | Deleted todo, received `{"success":true}` |
+| API-06 | Validation error (no title) | 400 | ✅ Pass | Correctly returned validation error |
+
+**Test data**: Created and deleted a single todo with title "測試待辦" and description "測試描述".
 
 ---
 
-## Environment Setup Attempted
+## Environment Setup
 
-### Backend Issues
-
-1. **Prisma schema error** initially: `@db.VarChar(100)` not supported by SQLite → changed to `String`
-2. **Prisma schema error**: removed `syntax = "prisma"` line
-3. **Database**: `DATABASE_URL="file:./dev.db"` set; `npx prisma db push` succeeded, created `dev.db`
-4. **Startup failure**:
-   - `ts-node` not found initially → installed `ts-node`
-   - Imports used `.js` extensions (compiled-JS style) causing `Cannot find module .../todos.js` when running via ts-node
-   - Attempted compilation via `tsc` failed because `typescript` binary missing despite package listed in devDependencies
-
-**Conclusion**: Backend TypeScript build chain not functional in current environment. Need to either:
-- Pre-compile to JavaScript and run with Node (ensure tsc works), or
-- Fix import paths to `.ts` for ts-node execution.
-
-### Frontend
-
-Not attempted due to backend blocker.
+- **Backend**: 
+  - Location: `/backend`
+  - Start: `npm install` (重置 node_modules), `npx prisma generate && DATABASE_URL="file:./dev.db" npx prisma db push`, `npx tsc` (編譯成功), `node dist/index.js`
+  - Port: 3000
+  - Health: `curl http://localhost:3000/health` → `{"status":"ok"}`
+- **Frontend**: Not tested (would require `npm install` in `frontend/` and `npm run dev`)
 
 ---
 
 ## Blockers / Issues
 
-1. **TypeScript toolchain**: `tsc` not available despite `typescript` in devDependencies; requires investigation of npm install completeness.
-2. **Module resolution**: Source `.ts` files import compiled `.js` filenames, causing runtime errors with ts-node.
-3. **Time constraints**: Full environment debug would exceed current session scope.
+- **TypeScript toolchain setup** was initially problematic; resolved by re-installing dependencies and fixing imports (`express` default import vs named types).
+- **Frontend execution** not yet performed; functional tests pending.
 
 ---
 
-## Next Steps
+## Sign-off
 
-- [ ] Fix backend TypeScript configuration (ensure `tsc` works or adjust imports for ts-node)
-- [ ] Re-run backend and perform API tests
-- [ ] Perform frontend UI tests (manual or with Cypress)
-- [ ] Update execution report with real results
+**Tester signature**: Hick3129  
+**Ready for merge**: ⏳ **Pending** (UI tests not executed)
 
----
-
-**Tester signature**: (blocked, awaiting environment fix)
-
-**Ready for merge**: ❌ No (environment not ready, tests not executed)
+**Required Actions**:
+1. [ ] Execute frontend functional tests (manual or Cypress)
+2. [ ] Update execution report with UI results
+3. [ ] Update sign-off if all pass
 
 ---
 
-_This report reflects current state as of 2026-03-17. Will be updated after blockers resolved._
+_This report updated on 2026-03-18 after successful backend API testing._
