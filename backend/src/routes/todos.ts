@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 
 export const todoRouter = (prisma: any) => {
@@ -11,7 +12,7 @@ export const todoRouter = (prisma: any) => {
       const where = completed === 'true' || completed === 'false' ? { completed: completed === 'true' } : undefined;
       const todos = await prisma.todo.findMany({ where, orderBy: { createdAt: 'desc' } });
       res.json(todos);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       res.status(500).json({ success: false, error: 'DATABASE_ERROR', message: '資料庫錯誤' });
     }
@@ -61,7 +62,7 @@ export const todoRouter = (prisma: any) => {
         data: updates,
       });
       res.json(todo);
-    } catch (err) {
+    } catch (err: any) {
       if (err.code === 'P2025') {
         return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'Todo not found' });
       }
@@ -74,7 +75,7 @@ export const todoRouter = (prisma: any) => {
     try {
       await prisma.todo.delete({ where: { id: req.params.id } });
       res.json({ success: true, message: 'Deleted' });
-    } catch (err) {
+    } catch (err: any) {
       if (err.code === 'P2025') {
         return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'Todo not found' });
       }
