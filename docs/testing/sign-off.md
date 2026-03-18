@@ -32,8 +32,9 @@
 
 ## Required Actions
 
-1. [ ] Run UI tests using Docker or after increasing `ulimit`
-2. [ ] Update this sign-off to APPROVED once UI tests pass
+1. [ ] Follow `docs/testing/manual-ui-testing-guide.md` to execute TC-01–TC-08
+2. [ ] Update `docs/testing/test-execution-report.md` with UI results
+3. [ ] If all pass, change this sign-off to `APPROVED`
 
 ---
 
