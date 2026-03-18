@@ -2,9 +2,9 @@
 
 **Tester**: Hick3129 (Agent)  
 **Date**: 2026-03-18  
-**System Under Test**: Todo App (backend API)  
-**Base Commit**: 9550a96 (main)  
-**Environment**: OpenClaw host (backend running on port 3000)
+**System Under Test**: Todo App (backend + frontend build)  
+**Base Commit**: e819b53 (main)  
+**Environment**: OpenClaw host
 
 ---
 
@@ -15,28 +15,16 @@
 | Functional (UI) | 8 | 0 | 0 | 8 |
 | API Integration | 6 | 6 | 0 | 0 |
 | Responsive | 1 | 0 | 0 | 1 |
-| **Total** | **15** | **6** | **0** | **8** |
+| Build | 1 | 1 | 0 | 0 |
+| **Total** | **16** | **7** | **0** | **9** |
 
-**Overall Status**: ⏳ **Partial execution** (API passed, UI pending)
+**Overall Status**: ⏳ **Partial** (backend & build ok, UI tests pending)
 
 ---
 
 ## Execution Details
 
-### Functional Tests (Pending - Frontend not tested)
-
-| TC ID | Description | Status | Notes |
-|-------|-------------|--------|-------|
-| TC-01 | 新增待辦 | ⏳ Pending | Frontend not started |
-| TC-02 | 空標題阻擋 | ⏳ Pending | Frontend not started |
-| TC-03 | 編輯待辦 | ⏳ Pending | Frontend not started |
-| TC-04 | 刪除待辦 | ⏳ Pending | Frontend not started |
-| TC-05 | 切換完成狀態 | ⏳ Pending | Frontend not started |
-| TC-06 | 篩選功能 | ⏳ Pending | Frontend not started |
-| TC-07 | LocalStorage 持久化 | ⏳ Pending | Frontend not started |
-| TC-08 | 響應式設計 | ⏳ Pending | Frontend not started |
-
-### API Tests (Executed - All Passed)
+### Backend API Tests (Executed - All Passed)
 
 | TC ID | Endpoint | Expected | Status | Notes |
 |-------|----------|----------|--------|-------|
@@ -47,38 +35,65 @@
 | API-05 | DELETE /api/todos/:id | 200/204 | ✅ Pass | Deleted todo, received `{"success":true}` |
 | API-06 | Validation error (no title) | 400 | ✅ Pass | Correctly returned validation error |
 
-**Test data**: Created and deleted a single todo with title "測試待辦" and description "測試描述".
+### Frontend Build
+
+| Build Step | Status | Notes |
+|------------|--------|-------|
+| TypeScript compile | ✅ Pass | Fixed imports and error types |
+| Production build (`npm run build`) | ✅ Pass | Output in `dist/` (index.html + assets) |
+| Serve static files | ✅ Pass | `npx serve dist` responds with HTML |
+
+### Functional Tests (Pending)
+
+| TC ID | Description | Status | Notes |
+|-------|-------------|--------|-------|
+| TC-01 | 新增待辦 | ⏳ Pending | Vite dev server blocked by EMFILE |
+| TC-02 | 空標題阻擋 | ⏳ Pending | Same |
+| TC-03 | 編輯待辦 | ⏳ Pending | Same |
+| TC-04 | 刪除待辦 | ⏳ Pending | Same |
+| TC-05 | 切換完成狀態 | ⏳ Pending | Same |
+| TC-06 | 篩選功能 | ⏳ Pending | Same |
+| TC-07 | LocalStorage 持久化 | ⏳ Pending | Same |
+| TC-08 | 響應式設計 | ⏳ Pending | Same |
 
 ---
 
-## Environment Setup
+## Environment Setup Details
 
-- **Backend**: 
-  - Location: `/backend`
-  - Start: `npm install` (重置 node_modules), `npx prisma generate && DATABASE_URL="file:./dev.db" npx prisma db push`, `npx tsc` (編譯成功), `node dist/index.js`
-  - Port: 3000
-  - Health: `curl http://localhost:3000/health` → `{"status":"ok"}`
-- **Frontend**: Not tested (would require `npm install` in `frontend/` and `npm run dev`)
+### Backend
+- Dependencies: `npm ci` (or `npm install`) succeeded
+- Prisma: `npx prisma generate && npx prisma db push` created SQLite `dev.db`
+- TypeScript: `npx tsc` compiles without errors
+- Runtime: `node dist/index.js` on port 3000
+- Health: `curl http://localhost:3000/health` → `{"status":"ok"}`
 
----
+### Frontend
+- Dependencies installed with `NODE_ENV=development npm install`
+- TypeScript compile: fixed import styles (`express` default import, removed `.ts` extensions)
+- Added `src/vite-env.d.ts` for Vite env types
+- Build: `npm run build` succeeded (Vite 5.4.21)
 
-## Blockers / Issues
-
-- **TypeScript toolchain setup** was initially problematic; resolved by re-installing dependencies and fixing imports (`express` default import vs named types).
-- **Frontend execution** not yet performed; functional tests pending.
-
----
-
-## Sign-off
-
-**Tester signature**: Hick3129  
-**Ready for merge**: ⏳ **Pending** (UI tests not executed)
-
-**Required Actions**:
-1. [ ] Execute frontend functional tests (manual or Cypress)
-2. [ ] Update execution report with UI results
-3. [ ] Update sign-off if all pass
+### Blockers
+- **Host EMFILE** prevents Vite dev server from starting (`too many open files`). Workaround:
+  - Increase `ulimit -n 8192` (tried; still blocked)
+  - Use Docker container (recommended)
+  - Build production bundle and serve static files (works, but no hot-reload)
 
 ---
 
-_This report updated on 2026-03-18 after successful backend API testing._
+## Next Steps
+
+1. **Run UI tests** via Docker:
+   ```bash
+   docker-compose up
+   ```
+   Then open http://localhost:8080 and manually execute TC-01 through TC-08.
+
+2. Alternatively, increase system-wide file descriptor limit (requires root).
+
+3. Once UI tests pass, update this report and sign-off to APPROVED.
+
+---
+
+**Tester**: Hick3129  
+**Signature**: /signed (partial: backend & build ok, UI tests pending)
