@@ -83,15 +83,10 @@
 
 ## Next Steps
 
-1. **Run UI tests** via Docker:
-   ```bash
-   docker-compose up
-   ```
-   Then open http://localhost:8080 and manually execute TC-01 through TC-08.
-
-2. Alternatively, increase system-wide file descriptor limit (requires root).
-
-3. Once UI tests pass, update this report and sign-off to APPROVED.
+1. **Run UI tests** using Docker or after increasing `ulimit`
+   - See `docs/testing/manual-ui-testing-guide.md` for step-by-step instructions.
+2. **Update this report** with UI test results (TC-01–TC-08)
+3. **Update sign-off** to APPROVED once all pass
 
 ---
 
