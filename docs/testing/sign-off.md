@@ -8,42 +8,34 @@
 
 ## Test Summary
 
-- Test cases executed: 6 / 15 (backend API only)
-- Pass rate: 100% (6 passed, 0 failed)
-- Critical defects: 0
+- Total test cases: 15
+- Backend API passed: 6/6
+- Frontend build: succeeded
+- Frontend functional tests: pending (EMFILE blocker)
+- Overall: ⏳ **PARTIALLY APPROVED**
 
 ---
 
 ## Decision
 
-- [ ] **APPROVED** - All test cases passed, ready to merge.
-- [ ] **APPROVED with minor issues** - Merge after quick fixes.
-- [x] **PARTIALLY APPROVED** - Backend fully functional, frontend pending UI tests.
+- [ ] **APPROVED** - All tests passed.
+- [ ] **APPROVED with minor issues** - Minor fixes needed.
+- [x] **PARTIALLY APPROVED** - Backend fully working; frontend build ok; UI tests blocked.
 
-**理由 (Detailed)**:
-### ✅ Backend API (6/6 passed)
-- GET /api/todos → empty array
-- POST /api/todos → created with id
-- GET /api/todos/:id → read success
-- PATCH /api/todos/:id → updated completed
-- DELETE /api/todos/:id → deleted
-- Validation error (missing title) → 400
-
-### ⏳ Frontend Not Tested
-- Vite dev server failed to start due to host EMFILE (too many open files) limit.
-- Functional test cases (TC-01–TC-08) remain pending.
-- Responsive test (TC-08) pending.
+**Details**:
+- ✅ Backend API functional and tested (CRUD + validation)
+- ✅ Frontend builds successfully (`npm run build`), static files serve correctly
+- ⏳ Frontend dev server fails due to host EMFILE limit; manual UI tests pending
+- 🐛 No critical defects found
 
 ---
 
-## Required Actions (if COMPLETING)
+## Required Actions
 
-1. [ ] Increase open file limit (`ulimit -n 8192`) and retry Vite, **or**
-2. [ ] Deploy with Docker (`docker-compose up`) and test UI in browser
-3. [ ] Execute all 8 functional test cases
-4. [ ] Update this sign-off to APPROVED when all pass
+1. [ ] Run UI tests using Docker or after increasing `ulimit`
+2. [ ] Update this sign-off to APPROVED once UI tests pass
 
 ---
 
 **Tester**: Hick3129  
-**Signature**: /signed (partial: backend ok, UI pending)
+**Signature**: /signed (partial pass; UI tests pending)
