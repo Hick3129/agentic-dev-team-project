@@ -3,8 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
-import todoRouter from './routes/todos.js';
-import { errorHandler } from './middleware/errorMiddleware.js';
+import { todoRouter } from './routes/todos';
+import { errorHandler } from './middleware/errorMiddleware';
 
 const app = express();
 const prisma = new PrismaClient();

@@ -1,5 +1,3 @@
-syntax = "prisma";
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,7 +9,7 @@ datasource db {
 
 model Todo {
   id          String   @id @default(cuid())
-  title       String   @db.VarChar(100)
+  title       String
   description String?
   completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
