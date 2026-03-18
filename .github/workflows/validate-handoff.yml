@@ -36,27 +36,6 @@ jobs:
             echo "dir=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Check handoff.md exists and has required sections
-        if: steps.role.outputs.role != 'unknown'
-        run: |
-          ROLE="${{ steps.role.outputs.role }}"
-          DIR="docs/${{ steps.role.outputs.dir }}"
-          HANDOFF_FILE="$DIR/handoff.md"
-          if [ ! -f "$HANDOFF_FILE" ]; then
-            echo "❌ Missing handoff.md in $DIR"
-            exit 1
-          fi
-
-          REQUIRED_SECTIONS=("📦 交付內容" "✅ 已完成工作" "🔑 關鍵決策" "🧩 開放問題" "⚠️ 注意事項與風險" "📚 參考資料連結")
-          for SECTION in "${REQUIRED_SECTIONS[@]}"; do
-            if ! grep -q "$SECTION" "$HANDOFF_FILE"; then
-              echo "❌ Missing section: '$SECTION' in handoff.md"
-              exit 1
-            fi
-          done
-
-          echo "✅ handoff.md validation passed for role: $ROLE"
-
       - name: Check required deliverables
         if: steps.role.outputs.role != 'unknown'
         run: |

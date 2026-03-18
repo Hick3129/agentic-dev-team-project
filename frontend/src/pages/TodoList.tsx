@@ -3,7 +3,7 @@ import { useTodoStore } from '../stores/todoStore';
 import { todoApi } from '../services/todoApi';
 
 export default function TodoList() {
-  const { todos, filter, setTodos, addTodo, updateTodo, removeTodo, setFilter } = useTodoStore();
+  const { todos, filter, updateTodo, removeTodo, setFilter } = useTodoStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
