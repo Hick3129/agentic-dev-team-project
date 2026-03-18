@@ -102,9 +102,6 @@ jobs:
             echo "No changes to STATUS.md"
           else
             git commit -m "chore: update project status"
-            # Use GitHub API to bypass branch protection (admin mode)
-            gh api -X PUT repos/$REPO/git/refs/heads/main \
-              -H "Accept: application/vnd.github+json" \
-              -f sha="$(git rev-parse HEAD)" \
-              -f force=true
+            # Force push using git with admin privileges
+            git push --force-with-lease
           fi
